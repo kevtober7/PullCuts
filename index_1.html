@@ -1,0 +1,477 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>html{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style><title>PullCuts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=IBM+Plex+Mono:wght@500;600&family=Libre+Franklin:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one narrow yardage-book column; the day's 7 holes read as a scorecard */
+:root{
+  --bg:#e9efe6; --paper:#fbfcf8; --ink:#13241b; --muted:#5a6d60; --line:#d3dccf;
+  --fairway:#1d6a42; --fairway-ink:#ffffff; --flag:#c5302a; --sand:#efe3bd; --sand-ink:#5b4a12;
+  --display:"Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body:"Libre Franklin", "Helvetica Neue", Arial, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1510; --paper:#12211a; --ink:#e4ede6; --muted:#8ea395; --line:#24382d;
+  --fairway:#45a872; --fairway-ink:#06130c; --flag:#f0574a; --sand:#3d3720; --sand-ink:#f1dd9c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1510; --paper:#12211a; --ink:#e4ede6; --muted:#8ea395; --line:#24382d;
+  --fairway:#45a872; --fairway-ink:#06130c; --flag:#f0574a; --sand:#3d3720; --sand-ink:#f1dd9c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:580px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:10px}
+.mark{font-family:var(--display);font-weight:900;font-size:44px;line-height:.9;letter-spacing:.01em;text-transform:uppercase;margin:0}
+.mark span{color:var(--fairway)}
+.meta{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;text-transform:uppercase;letter-spacing:.06em}
+.holes{display:grid;grid-template-columns:repeat(9,1fr);gap:6px}
+.hole{font-family:var(--mono);font-size:13px;text-align:center;padding:6px 0;border:1.5px solid var(--line);border-radius:4px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hole.now{border-color:var(--ink);color:var(--ink);font-weight:600}
+.hole.hit{background:var(--fairway);border-color:var(--fairway);color:var(--fairway-ink)}
+.hole.miss{background:transparent;border-color:var(--flag);color:var(--flag)}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:22px 20px;display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+h2{font-family:var(--display);font-weight:700;font-size:32px;line-height:1.05;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:14px;margin:-6px 0 0}
+.timer{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.timer i{display:block;height:100%;background:var(--fairway);width:100%;transition:width .1s linear}
+.timer.low i{background:var(--flag)}
+.field{position:relative}
+input[type=text]{width:100%;font:500 18px var(--body);padding:12px 14px;border:1.5px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+input[type=text]:focus{outline:none;border-color:var(--fairway);box-shadow:0 0 0 3px color-mix(in srgb,var(--fairway) 25%,transparent)}
+.sugg{list-style:none;margin:6px 0 0;padding:0;border:1px solid var(--line);border-radius:6px;background:var(--paper);overflow:hidden}
+.sugg li{padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line)}
+.sugg li:first-child{border-top:0}
+.sugg li.on{background:var(--sand);color:var(--sand-ink)}
+.sugg small{font-family:var(--mono);color:var(--muted);font-size:12px}
+.sugg li.on small{color:inherit}
+.hint{font-size:13px;color:var(--muted);min-height:1.2em;margin:0}
+button{font:600 16px var(--body);padding:12px 18px;border-radius:6px;border:1.5px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer}
+button.ghost{background:transparent;color:var(--ink)}
+button:focus-visible,.sugg li:focus-visible{outline:3px solid var(--fairway);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.result{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.yds{font-family:var(--display);font-weight:900;font-size:64px;line-height:.9;font-variant-numeric:tabular-nums}
+.yds small{font-size:22px;margin-left:4px}
+.yds.ob{color:var(--flag)}
+.verdict{font-weight:700}
+.pill{display:inline-block;font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:99px;background:var(--sand);color:var(--sand-ink)}
+.reveal{font-size:14px;color:var(--muted);margin:0}
+.reveal b{color:var(--ink);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.q{color:var(--muted);font-size:13px}
+tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--ink)}
+.miss-t{color:var(--flag)}
+.how{font-size:14px;color:var(--muted);margin:0}
+.how b{color:var(--ink)}
+footer{font-size:12px;color:var(--muted)}
+.nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tab{padding:8px 14px;font-size:14px;background:transparent;color:var(--ink);border-color:var(--line)}
+.tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tab:disabled{opacity:.45;cursor:not-allowed}
+.who{margin-left:auto;font-size:13px;color:var(--muted)}
+.who b{color:var(--ink)}
+.linkbtn{background:none;border:0;padding:0;color:var(--fairway);font:600 13px var(--body);text-decoration:underline;cursor:pointer}
+.seg{display:flex;gap:6px}
+.lb td.rk{font-family:var(--mono);color:var(--muted);width:2.2em}
+.lb tr.you td{background:var(--sand);color:var(--sand-ink)}
+.lb tr.you td.rk{color:inherit}
+.youtag{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-left:6px}
+.note{font-size:14px;color:var(--muted);margin:0}
+@media (prefers-reduced-motion:reduce){.timer i{transition:none}}
+@media (max-width:420px){.mark{font-size:36px}h2{font-size:27px}.yds{font-size:52px}}
+</style>
+
+</head><body><div class="wrap">
+  <header>
+    <h1 class="mark">Pull<span>Cuts</span></h1>
+    <div class="meta" id="meta"></div>
+  </header>
+  <nav class="nav" aria-label="Views">
+    <button id="nPlay" class="tab on">Play</button>
+    <button id="nBoard" class="tab">Leaderboard</button>
+    <span class="who" id="who"></span>
+  </nav>
+  <div class="holes" id="holes"></div>
+  <main id="app"></main>
+  <footer>Majors 1960–2026, PGA Tour winners 2000–2026, Players Championship 1974–2026, world No. 1s since 1986, and sub-60 rounds on the PGA Tour. Questions are shuffled each day. Rarity comes from a fame rating per player, so lesser-known champions hit it farther.</footer>
+</div>
+
+<script>
+// ---------- DATA ----------
+// key: [name, country, fame 1-100, majors won before 1960]
+const P={
+palmer:["Arnold Palmer","USA",96,1],player:["Gary Player","South Africa",90,1],nicklaus:["Jack Nicklaus","USA",99],brewer:["Gay Brewer","USA",12],goalby:["Bob Goalby","USA",12],archer:["George Archer","USA",12],
+casper:["Billy Casper","USA",45,1],coody:["Charles Coody","USA",8],aaron:["Tommy Aaron","USA",10],floyd:["Raymond Floyd","USA",45],watson:["Tom Watson","USA",80],zoeller:["Fuzzy Zoeller","USA",40],
+seve:["Seve Ballesteros","Spain",82],stadler:["Craig Stadler","USA",35],crenshaw:["Ben Crenshaw","USA",50],langer:["Bernhard Langer","Germany",55],mize:["Larry Mize","USA",25],lyle:["Sandy Lyle","Scotland",30],
+faldo:["Nick Faldo","England",75],woosnam:["Ian Woosnam","Wales",30],couples:["Fred Couples","USA",60],olazabal:["José María Olazábal","Spain",45],woods:["Tiger Woods","USA",100],omeara:["Mark O'Meara","USA",30],
+singh:["Vijay Singh","Fiji",60],weir:["Mike Weir","Canada",35],mickelson:["Phil Mickelson","USA",95],zjohnson:["Zach Johnson","USA",45],immelman:["Trevor Immelman","South Africa",20],cabrera:["Ángel Cabrera","Argentina",25],
+schwartzel:["Charl Schwartzel","South Africa",20],bubba:["Bubba Watson","USA",60],scott:["Adam Scott","Australia",60],spieth:["Jordan Spieth","USA",85],willett:["Danny Willett","England",18],garcia:["Sergio García","Spain",65],
+reed:["Patrick Reed","USA",50],djohnson:["Dustin Johnson","USA",75],matsuyama:["Hideki Matsuyama","Japan",55],scheffler:["Scottie Scheffler","USA",92],rahm:["Jon Rahm","Spain",75],mcilroy:["Rory McIlroy","Northern Ireland",97],
+littler:["Gene Littler","USA",10],boros:["Julius Boros","USA",12,1],venturi:["Ken Venturi","USA",18],trevino:["Lee Trevino","USA",70],moody:["Orville Moody","USA",6],jacklin:["Tony Jacklin","England",22],
+miller:["Johnny Miller","USA",45],irwin:["Hale Irwin","USA",30],lgraham:["Lou Graham","USA",4],pate:["Jerry Pate","USA",8],green:["Hubert Green","USA",12],north:["Andy North","USA",15],
+dgraham:["David Graham","Australia",10],nelson:["Larry Nelson","USA",12],ssimpson:["Scott Simpson","USA",8],strange:["Curtis Strange","USA",30],stewart:["Payne Stewart","USA",60],kite:["Tom Kite","USA",30],
+janzen:["Lee Janzen","USA",15],els:["Ernie Els","South Africa",65],pavin:["Corey Pavin","USA",25],sjones:["Steve Jones","USA",6],goosen:["Retief Goosen","South Africa",30],furyk:["Jim Furyk","USA",50],
+campbell:["Michael Campbell","New Zealand",15],ogilvy:["Geoff Ogilvy","Australia",18],glover:["Lucas Glover","USA",25],mcdowell:["Graeme McDowell","Northern Ireland",30],wsimpson:["Webb Simpson","USA",30],rose:["Justin Rose","England",50],
+kaymer:["Martin Kaymer","Germany",30],koepka:["Brooks Koepka","USA",75],woodland:["Gary Woodland","USA",30],bryson:["Bryson DeChambeau","USA",82],fitzpatrick:["Matt Fitzpatrick","England",35],clark:["Wyndham Clark","USA",30],
+spaun:["J.J. Spaun","USA",15],nagle:["Kel Nagle","Australia",4],charles:["Bob Charles","New Zealand",8],lema:["Tony Lema","USA",10],thomson:["Peter Thomson","Australia",15,4],devicenzo:["Roberto De Vicenzo","Argentina",15],
+weiskopf:["Tom Weiskopf","USA",15],rogers:["Bill Rogers","USA",4],norman:["Greg Norman","Australia",75],calcavecchia:["Mark Calcavecchia","USA",15],bakerfinch:["Ian Baker-Finch","Australia",15],price:["Nick Price","Zimbabwe",35],
+daly:["John Daly","USA",65],lehman:["Tom Lehman","USA",18],leonard:["Justin Leonard","USA",25],lawrie:["Paul Lawrie","Scotland",10],duval:["David Duval","USA",35],curtis:["Ben Curtis","USA",8],
+hamilton:["Todd Hamilton","USA",6],harrington:["Pádraig Harrington","Ireland",40],cink:["Stewart Cink","USA",25],oosthuizen:["Louis Oosthuizen","South Africa",30],clarke:["Darren Clarke","Northern Ireland",30],stenson:["Henrik Stenson","Sweden",40],
+molinari:["Francesco Molinari","Italy",25],lowry:["Shane Lowry","Ireland",40],morikawa:["Collin Morikawa","USA",50],csmith:["Cameron Smith","Australia",45],harman:["Brian Harman","USA",20],xander:["Xander Schauffele","USA",60],
+hebert:["Jay Hebert","USA",3],barber:["Jerry Barber","USA",3],nichols:["Bobby Nichols","USA",4],marr:["Dave Marr","USA",6],geiberger:["Al Geiberger","USA",10],january:["Don January","USA",4],
+stockton:["Dave Stockton","USA",8],wadkins:["Lanny Wadkins","USA",12],mahaffey:["John Mahaffey","USA",4],sutton:["Hal Sutton","USA",15],tway:["Bob Tway","USA",6],sluman:["Jeff Sluman","USA",6],
+grady:["Wayne Grady","Australia",4],azinger:["Paul Azinger","USA",25],elkington:["Steve Elkington","Australia",8],brooks:["Mark Brooks","USA",5],love:["Davis Love III","USA",35],toms:["David Toms","USA",15],
+beem:["Rich Beem","USA",10],micheel:["Shaun Micheel","USA",6],yang:["Y.E. Yang","South Korea",15],bradley:["Keegan Bradley","USA",35],dufner:["Jason Dufner","USA",25],day:["Jason Day","Australia",50],
+walker:["Jimmy Walker","USA",15],jt:["Justin Thomas","USA",65],rai:["Aaron Rai","England",15],fox:["Ryan Fox","New Zealand",15],
+beck:["Chip Beck","USA",10],goydos:["Paul Goydos","USA",6],appleby:["Stuart Appleby","Australia",15],hadwin:["Adam Hadwin","Canada",15],snedeker:["Brandt Snedeker","USA",30],chappell:["Kevin Chappell","USA",8],
+cyoung:["Cameron Young","USA",35],springer:["Hayden Springer","USA",5],knapp:["Jake Knapp","USA",15],mkim:["Michael Kim","USA",12],niemann:["Joaquin Niemann","Chile",30],hayes:["Mark Hayes","USA",3],
+peete:["Calvin Peete","USA",12],mccumber:["Mark McCumber","USA",5],mudd:["Jodie Mudd","USA",4],perks:["Craig Perks","New Zealand",5],funk:["Fred Funk","USA",18],ames:["Stephen Ames","Canada",8],
+tclark:["Tim Clark","South Africa",8],choi:["K.J. Choi","South Korea",25],kuchar:["Matt Kuchar","USA",40],fowler:["Rickie Fowler","USA",65],sikim:["Si Woo Kim","South Korea",20],westwood:["Lee Westwood","England",45],donald:["Luke Donald","England",40],
+hogan:["Ben Hogan","USA",60,9],sarazen:["Gene Sarazen","USA",25,7],snead:["Sam Snead","USA",35,7],bnelson:["Byron Nelson","USA",30,5],hagen:["Walter Hagen","USA",20,11],armour:["Tommy Armour","USA",6,3],barnes:["Jim Barnes","England",3,4]
+};
+// Pre-1960 players for the Grand Slam questions
+const SLAM_PRE=["hogan","sarazen"];
+const ONEAWAY_PRE=["snead","bnelson","hagen","armour","barnes"];
+// Rounds of 59 or better in official PGA Tour events (through the 2026 3M Open)
+const SUB60="geiberger beck duval goydos appleby furyk jt hadwin snedeker chappell scheffler cyoung springer knapp mkim".split(" ");
+// Players Championship winners 1974 -> 2026 (2020 cancelled)
+const PLAYERS="nicklaus geiberger nicklaus hayes nicklaus wadkins trevino floyd pate sutton couples peete mahaffey lyle mccumber kite mudd elkington love price norman janzen couples elkington leonard duval sutton woods perks love scott funk ames mickelson garcia stenson tclark choi kuchar woods kaymer fowler day sikim wsimpson mcilroy - jt csmith scheffler scheffler mcilroy cyoung".split(" ");
+// Official World Golf Ranking No. 1s since 1986
+const NO1="langer seve norman faldo woosnam couples price lehman woods els duval singh westwood kaymer donald mcilroy scott spieth day djohnson jt rose koepka rahm scheffler".split(" ");
+// Well-known players with no major, so a bad guess is possible
+const NOMAJOR=["Tommy Fleetwood","Viktor Hovland","Patrick Cantlay","Tony Finau","Ludvig Åberg","Colin Montgomerie","Steve Stricker","Ian Poulter","Paul Casey","Max Homa","Sam Burns","Tom Kim","Will Zalatoris","Sungjae Im","Hideto Tanihara","Kenny Perry","Chris DiMarco","Jim Thorpe","Robert Allenby","Russell Henley","Sahith Theegala","Corey Conners","Min Woo Lee","Tyrrell Hatton","Shane Ryan","Jordan Smith","Billy Horschel","Kevin Na","Kevin Kisner"];
+
+// Winners by year, 1960 → 2026. null = not played.
+const EVENTS={
+masters:"palmer player palmer nicklaus palmer nicklaus nicklaus brewer goalby archer casper coody nicklaus aaron player nicklaus floyd watson player zoeller seve watson stadler seve crenshaw langer nicklaus mize lyle faldo faldo woosnam couples langer olazabal crenshaw faldo woods omeara olazabal singh woods woods weir mickelson woods mickelson zjohnson immelman cabrera mickelson schwartzel bubba scott bubba spieth willett garcia reed woods djohnson matsuyama scheffler rahm scheffler mcilroy mcilroy",
+usopen:"palmer littler nicklaus boros venturi player casper nicklaus trevino moody jacklin trevino nicklaus miller irwin lgraham pate green north irwin nicklaus dgraham watson nelson zoeller north floyd ssimpson strange strange irwin stewart kite janzen els pavin sjones els janzen stewart woods goosen woods furyk goosen campbell ogilvy cabrera woods glover mcdowell mcilroy wsimpson rose kaymer spieth djohnson koepka koepka woodland bryson rahm fitzpatrick clark bryson spaun clark",
+open:"nagle palmer palmer charles lema thomson nicklaus devicenzo player jacklin nicklaus trevino trevino weiskopf player watson miller watson nicklaus seve watson rogers watson watson seve lyle norman faldo seve calcavecchia faldo bakerfinch faldo norman price daly lehman leonard omeara lawrie woods duval els curtis hamilton woods woods harrington harrington cink oosthuizen clarke els mickelson mcilroy zjohnson stenson spieth molinari lowry - morikawa csmith harman xander scheffler fox",
+pga:"hebert barber player nicklaus nichols marr geiberger january boros floyd stockton nicklaus player nicklaus trevino nicklaus stockton wadkins mahaffey dgraham nicklaus nelson floyd sutton trevino green tway nelson sluman stewart grady daly price azinger price elkington brooks love singh woods woods toms beem micheel singh mickelson woods woods harrington yang kaymer bradley mcilroy dufner mcilroy day walker jt koepka koepka morikawa mickelson jt koepka xander scheffler rai"
+};
+const EVNAME={masters:"the Masters",usopen:"the U.S. Open",open:"The Open Championship (British Open)",pga:"the PGA Championship"};
+const EVSHORT={masters:"Masters",usopen:"U.S. Open",open:"British Open",pga:"PGA Championship"};
+
+// PGA Tour event winners by season (wraparound seasons 2014-2023 named for the year they ended)
+Object.assign(P,{"wjesperparnevik":["Jesper Parnevik","",25],"wkirktriplett":["Kirk Triplett","",7],"wjimcarter":["Jim Carter","",7],"wdudleyhart":["Dudley Hart","",7],"wrobertallenby":["Robert Allenby","",20],"wcarlosfranco":["Carlos Franco","",7],"wtomscherrer":["Tom Scherrer","",7],"wdennispaulson":["Dennis Paulson","",7],"wnotahbegayiii":["Notah Begay III","",15],"wlorenroberts":["Loren Roberts","",7],"wbradfaxon":["Brad Faxon","",20],"wmichaelclarkii":["Michael Clark II","",7],"wroccomediate":["Rocco Mediate","",30],"wscottverplank":["Scott Verplank","",15],"wrorysabbatini":["Rory Sabbatini","",20],"wchrisdimarco":["Chris DiMarco","",30],"wbillyandrade":["Billy Andrade","",7],"wjohnhuston":["John Huston","",7],"wduffywaldorf":["Duffy Waldorf","",7],"wstevelowery":["Steve Lowery","",7],"wstevestricker":["Steve Stricker","",45],"wgarrettwillis":["Garrett Willis","",7],"wjoedurant":["Joe Durant","",7],"wscottmccarron":["Scott McCarron","",7],"wjosecoceres":["José Cóceres","",7],"wscotthoch":["Scott Hoch","",15],"wrobertdamron":["Robert Damron","",7],"wfranklickliter":["Frank Lickliter","",7],"wbobestes":["Bob Estes","",7],"wshigekimaruyam":["Shigeki Maruyama","",15],"wdavidgossett":["David Gossett","",7],"wtompernicejr":["Tom Pernice Jr.","",7],"wkennyperry":["Kenny Perry","",30],"wjohncook":["John Cook","",7],"wjoeledwards":["Joel Edwards","",7],"wcameronbeckman":["Cameron Beckman","",7],"wjerrykelly":["Jerry Kelly","",12],"wmattgogel":["Matt Gogel","",7],"wlenmattiace":["Len Mattiace","",7],"wkevinsutherlan":["Kevin Sutherland","",7],"wianleggatt":["Ian Leggatt","",7],"wchrissmith":["Chris Smith","",7],"wspikemcroy":["Spike McRoy","",7],"wjphayes":["J. P. Hayes","",7],"wcraigparry":["Craig Parry","",10],"wchrisriley":["Chris Riley","",7],"wgenesauers":["Gene Sauers","",7],"wjohnrollins":["John Rollins","",7],"wdanforsman":["Dan Forsman","",7],"wcharleshowelli":["Charles Howell III","",25],"wphiltataurangi":["Phil Tataurangi","",7],"wbobburns":["Bob Burns","",7],"wjonathanbyrd":["Jonathan Byrd","",7],"wbencrane":["Ben Crane","",12],"wsteveflesch":["Steve Flesch","",7],"wjonathankaye":["Jonathan Kaye","",7],"wpeterjacobsen":["Peter Jacobsen","",7],"wjllewis":["J. L. Lewis","",7],"wtommyarmouriii":["Tommy Armour III","",7],"wchadcampbell":["Chad Campbell","",15],"wheathslocum":["Heath Slocum","",7],"wjoeysindelar":["Joey Sindelar","",7],"wmarkhensby":["Mark Hensby","",7],"wrodpampling":["Rod Pampling","",7],"wwoodyaustin":["Woody Austin","",15],"wvaughntaylor":["Vaughn Taylor","",7],"wbartbryant":["Bart Bryant","",7],"wandrestolz":["Andre Stolz","",7],"wbrentgeiberger":["Brent Geiberger","",7],"wryanpalmer":["Ryan Palmer","",15],"wpeterlonard":["Peter Lonard","",7],"wtimpetrovic":["Tim Petrovic","",7],"wtedpurdy":["Ted Purdy","",7],"wseanohair":["Sean O'Hair","",15],"wjasonbohn":["Jason Bohn","",7],"wolinbrowne":["Olin Browne","",7],"wjasongore":["Jason Gore","",7],"wrobertgamez":["Robert Gamez","",7],"wwesshortjr":["Wes Short Jr.","",7],"wcarlpettersson":["Carl Pettersson","",10],"wjbholmes":["J. B. Holmes","",25],"warronoberholse":["Arron Oberholser","",7],"waaronbaddeley":["Aaron Baddeley","",20],"wchriscouch":["Chris Couch","",7],"wbrettwetterich":["Brett Wetterich","",7],"wtimherron":["Tim Herron","",7],"wjeffmaggert":["Jeff Maggert","",7],"wjjhenry":["J. J. Henry","",7],"wjohnsenden":["John Senden","",7],"wdeanwilson":["Dean Wilson","",7],"wwillmackenzie":["Will MacKenzie","",7],"wericaxley":["Eric Axley","",7],"wdjtrahan":["D. J. Trahan","",7],"wtroymatteson":["Troy Matteson","",7],"wcharleyhoffman":["Charley Hoffman","",15],"wmarkwilson":["Mark Wilson","",7],"wbooweekley":["Boo Weekley","",30],"wnickwatney":["Nick Watney","",15],"whuntermahan":["Hunter Mahan","",30],"wbrianbateman":["Brian Bateman","",7],"wjoeogilvie":["Joe Ogilvie","",7],"wgeorgemcneill":["George McNeill","",7],"wdanielchopra":["Daniel Chopra","",7],"wbriangay":["Brian Gay","",8],"wgregkraft":["Greg Kraft","",7],"wandresromero":["Andrés Romero","",8],"wjohnsonwagner":["Johnson Wagner","",7],"wanthonykim":["Anthony Kim","",40],"wryujiimada":["Ryuji Imada","",7],"wrichardsjohnso":["Richard S. Johnson","",7],"wchezreavie":["Chez Reavie","",7],"wparkermclachli":["Parker McLachlin","",7],"wcamilovillegas":["Camilo Villegas","",35],"wmarcturnesa":["Marc Turnesa","",7],"wpatperez":["Pat Perez","",20],"wmichaelbradley":["Michael Bradley","",7],"wpaulcasey":["Paul Casey","",35],"wbovanpelt":["Bo Van Pelt","",7],"wnathangreen":["Nathan Green","",7],"wryanmoore":["Ryan Moore","",15],"wmartinlaird":["Martin Laird","",7],"wbillhaas":["Bill Haas","",25],"wianpoulter":["Ian Poulter","",50],"wdereklamely":["Derek Lamely","",7],"wmattbettencour":["Matt Bettencourt","",7],"warjunatwal":["Arjun Atwal","",7],"wbilllunde":["Bill Lunde","",7],"wrobertgarrigus":["Robert Garrigus","",7],"wjhonattanvegas":["Jhonattan Vegas","",12],"wdapoints":["D. A. Points","",7],"wbrendansteele":["Brendan Steele","",7],"wharrisonfrazar":["Harrison Frazar","",7],"wfredrikjacobso":["Fredrik Jacobson","",10],"wchriskirk":["Chris Kirk","",20],"wscottstallings":["Scott Stallings","",7],"wscottpiercy":["Scott Piercy","",7],"wkevinna":["Kevin Na","",30],"wbrycemolder":["Bryce Molder","",7],"wkylestanley":["Kyle Stanley","",10],"wjohnhuh":["John Huh","",7],"wmarcleishman":["Marc Leishman","",30],"wtedpotterjr":["Ted Potter Jr.","",7],"wjonasblixt":["Jonas Blixt","",8],"wtommygainey":["Tommy Gainey","",7],"wcharliebeljan":["Charlie Beljan","",7],"wrussellhenley":["Russell Henley","",30],"wjohnmerrick":["John Merrick","",7],"wmichaelthompso":["Michael Thompson","",7],"wscottbrown":["Scott Brown","",7],"wkevinstreelman":["Kevin Streelman","",12],"wbillyhorschel":["Billy Horschel","",35],"wderekernst":["Derek Ernst","",7],"wsangmoonbae":["Sangmoon Bae","",10],"wharrisenglish":["Harris English","",25],"wkenduke":["Ken Duke","",7],"wkevinstadler":["Kevin Stadler","",8],"wchessonhadley":["Chesson Hadley","",7],"wmattevery":["Matt Every","",10],"wstevenbowditch":["Steven Bowditch","",7],"wmattjones":["Matt Jones","",10],"wseungyulnoh":["Seung-yul Noh","",8],"wbrendontodd":["Brendon Todd","",10],"wbenmartin":["Ben Martin","",7],"wrobertstreb":["Robert Streb","",7],"wnicktaylor":["Nick Taylor","",25],"wjameshahn":["James Hahn","",7],"walexcejka":["Alex Čejka","",7],"wdavidlingmerth":["David Lingmerth","",7],"wfabiangomez":["Fabián Gómez","",7],"wdannylee":["Danny Lee","",12],"wtroymerritt":["Troy Merritt","",7],"wemilianogrillo":["Emiliano Grillo","",15],"wsmyliekaufman":["Smylie Kaufman","",15],"wrussellknox":["Russell Knox","",7],"wpetermalnati":["Peter Malnati","",7],"wkevinkisner":["Kevin Kisner","",25],"wtonyfinau":["Tony Finau","",50],"wjimherman":["Jim Herman","",8],"wbrandengrace":["Branden Grace","",15],"wbrianstuard":["Brian Stuard","",7],"wwilliammcgirt":["William McGirt","",7],"wdanielberger":["Daniel Berger","",30],"wbillyhurleyiii":["Billy Hurley III","",7],"wgregchalmers":["Greg Chalmers","",7],"wcodygribble":["Cody Gribble","",7],"wmackenziehughe":["Mackenzie Hughes","",15],"whudsonswafford":["Hudson Swafford","",7],"wwesleybryan":["Wesley Bryan","",7],"wgraysonmurray":["Grayson Murray","",20],"wchrisstroud":["Chris Stroud","",7],"wryanarmour":["Ryan Armour","",7],"wpatrickcantlay":["Patrick Cantlay","",50],"wpattonkizzire":["Patton Kizzire","",8],"waustincook":["Austin Cook","",7],"wbricegarnett":["Brice Garnett","",7],"wsatoshikodaira":["Satoshi Kodaira","",7],"wandrewlandry":["Andrew Landry","",7],"waaronwise":["Aaron Wise","",15],"wandrewputnam":["Andrew Putnam","",7],"wkevintway":["Kevin Tway","",7],"wcameronchamp":["Cameron Champ","",25],"wadamlong":["Adam Long","",7],"wmartintrainer":["Martin Trainer","",7],"wkeithmitchell":["Keith Mitchell","",12],"wcoreyconners":["Corey Conners","",25],"wctpan":["C.T. Pan","",12],"wmaxhoma":["Max Homa","",45],"wsungkang":["Sung Kang","",8],"wnatelashley":["Nate Lashley","",7],"wmatthewwolff":["Matthew Wolff","",30],"wdylanfrittelli":["Dylan Frittelli","",7],"wjtposton":["J. T. Poston","",7],"wsebastianmunoz":["Sebastián Muñoz","",7],"wlantogriffin":["Lanto Griffin","",7],"wtylerduncan":["Tyler Duncan","",7],"wviktorhovland":["Viktor Hovland","",50],"wsungjaeim":["Sungjae Im","",35],"wtyrrellhatton":["Tyrrell Hatton","",35],"wrichywerenski":["Richy Werenski","",7],"wjasonkokrak":["Jason Kokrak","",15],"wcarlosortiz":["Carlos Ortiz","",12],"wjoeldahmen":["Joel Dahmen","",20],"wsamburns":["Sam Burns","",35],"wkhlee":["K.H. Lee","",12],"wgarrickhiggo":["Garrick Higgo","",7],"wcamerondavis":["Cameron Davis","",12],"wseamuspower":["Séamus Power","",7],"wabrahamancer":["Abraham Ancer","",20],"werikvanrooyen":["Erik van Rooyen","",15],"wlucasherbert":["Lucas Herbert","",10],"wtalorgooch":["Talor Gooch","",20],"wlukelist":["Luke List","",10],"wtomhoge":["Tom Hoge","",10],"wseppstraka":["Sepp Straka","",25],"wryanbrehm":["Ryan Brehm","",7],"wchadramey":["Chad Ramey","",7],"wtreymullinax":["Trey Mullinax","",7],"wtomkim":["Tom Kim","",40],"wwillzalatoris":["Will Zalatoris","",40],"wadamsvensson":["Adam Svensson","",7],"wkurtkitayama":["Kurt Kitayama","",12],"wnicoechavarria":["Nico Echavarría","",10],"wtaylormoore":["Taylor Moore","",7],"wmattwallace":["Matt Wallace","",7],"wnickhardy":["Nick Hardy","",7],"wdavisriley":["Davis Riley","",7],"wvincentnorrman":["Vincent Norrman","",7],"wakshaybhatia":["Akshay Bhatia","",30],"wleehodges":["Lee Hodges","",7],"wsahiththeegala":["Sahith Theegala","",30],"wludvigaberg":["Ludvig Åberg","",50],"wnickdunlap":["Nick Dunlap","",25],"wmatthieupavon":["Matthieu Pavon","",15],"waustineckroat":["Austin Eckroat","",7],"wstephanjager":["Stephan Jäger","",10],"wtaylorpendrith":["Taylor Pendrith","",12],"wchrisgotterup":["Chris Gotterup","",25],"wrobertmacintyr":["Robert MacIntyre","",30],"wdavisthompson":["Davis Thompson","",10],"wharryhall":["Harry Hall","",10],"wkevinyu":["Kevin Yu","",7],"wmattmccarty":["Matt McCarty","",7],"wrafaelcampos":["Rafael Campos","",7],"wmaverickmcneal":["Maverick McNealy","",15],"wthomasdetry":["Thomas Detry","",15],"wbriancampbell":["Brian Campbell","",7],"wjoehighsmith":["Joe Highsmith","",7],"wkarlvilips":["Karl Vilips","",12],"wminwoolee":["Min Woo Lee","",35],"wbengriffin":["Ben Griffin","",20],"wandrewnovak":["Andrew Novak","",7],"waldrichpotgiet":["Aldrich Potgieter","",15],"wwilliammouw":["William Mouw","",7],"wryangerard":["Ryan Gerard","",7],"wtommyfleetwood":["Tommy Fleetwood","",55],"wstevenfisk":["Steven Fisk","",7],"wmichaelbrennan":["Michael Brennan","",7],"wadamschenk":["Adam Schenk","",7],"wsamivalimaki":["Sami Välimäki","",7],"wjacobbridgeman":["Jacob Bridgeman","",12],"wrickycastillo":["Ricky Castillo","",7],"walexfitzpatric":["Alex Fitzpatrick","",15],"wkristofferreit":["Kristoffer Reitan","",7],"wbudcauley":["Bud Cauley","",10],"wstefanomazzoli":["Stefano Mazzoli","",7],"wjacksonkoivun":["Jackson Koivun","",12],"wmichaelthorbjo":["Michael Thorbjornsen","",12],"waustinsmotherm":["Austin Smotherman","",7]});
+const TOURWINS={"2000":"woods azinger wjesperparnevik lehman mickelson wkirktriplett clarke wjimcarter furyk wdudleyhart sutton singh cink wrobertallenby wcarlosfranco wtomscherrer wdennispaulson wnotahbegayiii wlorenroberts wbradfaxon wmichaelclarkii els wroccomediate wscottverplank wrorysabbatini wchrisdimarco leonard duval toms wbillyandrade wjohnhuston wduffywaldorf wstevelowery weir","2001":"wstevestricker furyk wgarrettwillis wbradfaxon calcavecchia love mickelson wjoedurant wrobertallenby wjesperparnevik woods wscottmccarron wjosecoceres sutton wscotthoch toms wrobertdamron garcia wfranklickliter wbobestes goosen duval wshigekimaruyam sluman wdavidgossett wtompernicejr wkennyperry wjohncook wjoeledwards wscottverplank leonard wchrisdimarco weir wcameronbeckman","2002":"garcia wjerrykelly mickelson wchrisdimarco wmattgogel olazabal wlenmattiace wkevinsutherlan wianleggatt els kuchar woods perks singh goosen leonard wroccomediate choi wshigekimaruyam price furyk wbobestes wchrissmith sluman wspikemcroy wjphayes beem wcraigparry wchrisriley wgenesauers wjohnrollins wdanforsman wlorenroberts wcharleshowelli wphiltataurangi wbobburns wjonathanbyrd donald","2003":"els singh weir love woods wfranklickliter wscotthoch leonard wbencrane couples wsteveflesch toms wkennyperry wrorysabbatini furyk wjonathankaye curtis stadler wpeterjacobsen micheel clarke wkirktriplett scott tway wjllewis wtommyarmouriii wjohnhuston appleby wshigekimaruyam goosen wchadcampbell","2004":"appleby els mickelson wjonathankaye singh daly weir woods wheathslocum wcraigparry hamilton wchadcampbell scott zjohnson cink wjoeysindelar garcia wsteveflesch toms goosen ames wmarkhensby wcarlosfranco wjonathanbyrd wrodpampling wwoodyaustin wvaughntaylor wbartbryant funk wandrestolz wbrentgeiberger wryanpalmer","2005":"appleby singh woods leonard mickelson scott toms ogilvy harrington wkennyperry funk wpeterlonard wtimpetrovic wtedpurdy wbartbryant garcia campbell furyk wseanohair wjasonbohn wbencrane goosen wbradfaxon wolinbrowne calcavecchia wjasongore wrobertgamez choi wwesshortjr glover wcarlpettersson wvaughntaylor wheathslocum","2006":"appleby toms wchadcampbell woods wjbholmes warronoberholse wrorysabbatini ogilvy wkirktriplett donald wrodpampling ames mickelson waaronbaddeley wchriscouch furyk wbrettwetterich wtimherron wjeffmaggert wcarlpettersson singh curtis wjjhenry immelman wjohnsenden wjohnrollins pavin wdeanwilson wwillmackenzie wericaxley wdjtrahan love wtroymatteson wjoedurant choi scott","2007":"singh goydos wcharleyhoffman woods waaronbaddeley mickelson wcharleshowelli stenson funk wmarkwilson calcavecchia scott zjohnson wbooweekley wnickwatney wscottverplank wrorysabbatini choi wwoodyaustin cabrera whuntermahan wbrianbateman wjonathanbyrd harrington wjoeogilvie furyk wsteveflesch snedeker wstevestricker wchadcampbell leonard wgeorgemcneill weir wdanielchopra ames","2008":"wdanielchopra choi wdjtrahan woods wjbholmes wstevelowery mickelson wbriangay els wseanohair ogilvy wgregkraft wandresromero wjohnsonwagner immelman wbooweekley scott wanthonykim garcia wryujiimada wkennyperry leonard cink harrington wrichardsjohnso wchezreavie singh wparkermclachli wcarlpettersson wcamilovillegas wwillmackenzie djohnson zjohnson wmarcturnesa wcameronbeckman wryanpalmer love","2009":"ogilvy zjohnson wpatperez wkennyperry wnickwatney djohnson mickelson wmarkwilson yang wmichaelbradley goosen woods wpaulcasey cabrera wbriangay wjerrykelly wseanohair stenson wrorysabbatini wstevestricker glover cink wbovanpelt wnathangreen wjohnrollins wryanmoore wheathslocum kuchar wmartinlaird wtroymatteson ames","2010":"ogilvy wryanpalmer wbillhaas wbencrane wstevestricker djohnson wianpoulter wcameronbeckman whuntermahan wcamilovillegas els wdereklamely furyk wanthonykim mickelson wjasonbohn mcilroy tclark scott day zjohnson rose westwood mcdowell bubba oosthuizen wmattbettencour wcarlpettersson appleby kuchar kaymer warjunatwal wcharleyhoffman wbilllunde wheathslocum wroccomediate wjonathanbyrd wrobertgarrigus","2011":"wjonathanbyrd wmarkwilson wjhonattanvegas bubba wdapoints waaronbaddeley donald wjohnsonwagner wrorysabbatini wnickwatney wmichaelbradley woodland wmartinlaird mickelson schwartzel wbrendansteele snedeker glover choi toms bradley wstevestricker wharrisonfrazar mcilroy wfredrikjacobso clarke wchriskirk wseanohair wscottstallings scott wscottpiercy wsimpson djohnson rose wbillhaas wkevinna wbrycemolder wbencrane","2012":"wstevestricker wjohnsonwagner wmarkwilson snedeker wkylestanley mickelson wbillhaas whuntermahan wjohnhuh mcilroy rose wgeorgemcneill donald woods wcarlpettersson bubba curtis dufner fowler kuchar zjohnson djohnson wsimpson wmarcleishman wtedpotterjr els wscottstallings wscottpiercy bradley wjjhenry garcia wnickwatney wryanmoore wjonasblixt wtommygainey wcharliebeljan","2013":"djohnson wrussellhenley wbriangay woods mickelson snedeker wjohnmerrick kuchar wmichaelthompso wscottbrown wkevinstreelman wdapoints wmartinlaird scott mcdowell wbillyhorschel wderekernst wsangmoonbae wbooweekley wharrisenglish rose wkenduke wbillhaas wjonasblixt spieth wwoodyaustin woodland dufner reed stenson zjohnson","2014":"walker wsimpson wryanmoore djohnson wchriskirk wharrisenglish zjohnson reed wscottstallings wkevinstadler bubba day wrussellhenley wchessonhadley wjohnsenden wmattevery wstevenbowditch wmattjones kuchar wseungyulnoh wjbholmes kaymer wbrendontodd scott matsuyama wbencrane wkevinstreelman rose cabrera harman mcilroy tclark ogilvy wcamilovillegas whuntermahan wbillyhorschel","2015":"wsangmoonbae wbenmartin wrobertstreb wryanmoore bubba wnicktaylor wcharleyhoffman reed walker wbillhaas koepka day snedeker wjameshahn harrington djohnson walexcejka spieth wmattevery wjbholmes furyk rose mcilroy fowler wchriskirk wstevenbowditch wdavidlingmerth wfabiangomez wdannylee wscottpiercy zjohnson wtroymerritt lowry wjjhenry love","2016":"wemilianogrillo wsmyliekaufman jt wrussellknox wpetermalnati mcdowell wkevinkisner spieth wfabiangomez dufner snedeker matsuyama wvaughntaylor bubba scott schwartzel day wtonyfinau wjimherman willett wbrandengrace wcharleyhoffman wbrianstuard wjameshahn garcia wwilliammcgirt wdanielberger djohnson wbillyhurleyiii wgregchalmers stenson waaronbaddeley wjhonattanvegas walker wryanmoore sikim reed mcilroy","2017":"wbrendansteele jt matsuyama wcodygribble wrodpampling wpatperez wmackenziehughe whudsonswafford rahm spieth djohnson fowler hadwin wmarcleishman wdapoints wrussellhenley garcia wwesleybryan chappell wjonasblixt csmith harman sikim wbillyhorschel wkevinkisner dufner wdanielberger koepka wkylestanley xander bryson wgraysonmurray wjhonattanvegas wchrisstroud stenson","2018":"wbrendansteele wpatperez jt rose wryanarmour wpatrickcantlay wpattonkizzire waustincook djohnson rahm day woodland wtedpotterjr bubba mickelson wpaulcasey mcilroy wbricegarnett wianpoulter reed wsatoshikodaira wandrewlandry wbillyhorschel wscottpiercy wsimpson waaronwise bryson koepka molinari wkevinna mkim wtroymerritt wandrewputnam snedeker bradley woods","2019":"koepka wmarcleishman wkevintway xander wcameronchamp bryson kuchar wcharleshowelli wadamlong rose fowler mickelson wjbholmes djohnson wmartintrainer wkeithmitchell molinari mcilroy wpaulcasey wkevinkisner mcdowell wcoreyconners woods wctpan wryanpalmer rahm wmaxhoma wsungkang wkevinna wpatrickcantlay woodland wchezreavie wnatelashley wmatthewwolff wdylanfrittelli lowry wjimherman morikawa wjtposton reed jt","2020":"niemann wsebastianmunoz wcameronchamp wkevinna wlantogriffin jt woods mcilroy wbrendontodd wtylerduncan csmith wandrewlandry wmarcleishman wsimpson wnicktaylor scott reed wviktorhovland wsungjaeim wtyrrellhatton wdanielberger djohnson bryson morikawa rahm wmichaelthompso wrichywerenski wjimherman","2021":"cink bryson whudsonswafford garcia wmartinlaird wjasonkokrak wpatrickcantlay wbriangay wcarlosortiz djohnson wrobertstreb wviktorhovland wharrisenglish wkevinna sikim reed koepka wdanielberger wmaxhoma morikawa wbrandengrace jt wmattjones wbillyhorschel wjoeldahmen spieth matsuyama wmarcleishman csmith wsamburns mcilroy wkhlee mickelson wgarrickhiggo rahm wcamerondavis glover wseamuspower wcameronchamp wabrahamancer werikvanrooyen wkevinkisner wtonyfinau","2022":"wmaxhoma wsamburns wsungjaeim mcilroy matsuyama wlucasherbert wviktorhovland wjasonkokrak wtalorgooch csmith whudsonswafford wlukelist wtomhoge scheffler niemann wseppstraka wryanbrehm wchadramey spaun spieth wpatrickcantlay xander rahm wkhlee jt wbillyhorschel fitzpatrick wjtposton wtreymullinax wchezreavie wtonyfinau wtomkim wwillzalatoris","2023":"wmaxhoma wmackenziehughe wtomkim bradley mcilroy wseamuspower wrussellhenley wtonyfinau wadamsvensson rahm sikim rose scheffler wchriskirk wkurtkitayama wnicoechavarria wtaylormoore wsamburns wmattwallace wcoreyconners fitzpatrick wnickhardy wdavisriley clark day koepka wemilianogrillo wviktorhovland wnicktaylor fowler wseppstraka wvincentnorrman harman wakshaybhatia wleehodges glover wsahiththeegala wlukelist morikawa werikvanrooyen wcamilovillegas wludvigaberg","2024":"wchriskirk wgraysonmurray wnickdunlap wmatthieupavon clark wnicktaylor matsuyama knapp waustineckroat scheffler wbricegarnett wpetermalnati wstephanjager wakshaybhatia wbillyhorschel lowry mcilroy wtaylorpendrith wchrisgotterup xander wdavisriley wrobertmacintyr bryson wcamerondavis wdavisthompson wharryhall wjhonattanvegas rai bradley wpattonkizzire wkevinyu wmattmccarty wjtposton wnicoechavarria wrafaelcampos wmaverickmcneal","2025":"matsuyama wnicktaylor wseppstraka wharrisenglish mcilroy wthomasdetry wludvigaberg wbriancampbell wjoehighsmith wrussellhenley wkarlvilips wviktorhovland wminwoolee harman jt wgarrickhiggo wbengriffin wandrewnovak scheffler fox spaun bradley waldrichpotgiet wchrisgotterup wwilliammouw wryangerard wkurtkitayama cyoung rose wtommyfleetwood wstevenfisk xander wmichaelbrennan wadamschenk wsamivalimaki","2026":"wchrisgotterup scheffler rose morikawa wjacobbridgeman wnicoechavarria wakshaybhatia wrickycastillo cyoung fitzpatrick woodland spaun mcilroy walexfitzpatric wkristofferreit snedeker rai clark wrussellhenley wjtposton wbudcauley wviktorhovland wtomkim wstevenfisk fox wstefanomazzoli wjacksonkoivun wmichaelthorbjo wmichaelbrennan waustinsmotherm"};
+
+// ---------- DERIVED ----------
+const W={}; // key -> [{ev,y}]
+for(const ev in EVENTS){EVENTS[ev].split(" ").forEach((k,i)=>{if(k==="-")return;if(!P[k])console.warn("missing",k);(W[k]=W[k]||[]).push({ev,y:1960+i})})}
+for(const k in P)W[k]=W[k]||[];
+const keys=Object.keys(P);
+const won=k=>W[k].length>0;
+const career=k=>W[k].length+(P[k][3]||0);
+const set=f=>keys.filter(f);
+function buildPool(){
+  const pool=[];const add=(kind,q,sub,ans)=>{if(ans.length>=3)pool.push({kind,q,sub,ans})};
+  const decades=[1960,1970,1980,1990,2000,2010,2020];
+  for(const ev in EVENTS){
+    add("event",`Name a winner of ${EVNAME[ev]}`,"Any year since 1960",set(k=>W[k].some(w=>w.ev===ev)));
+    add("multi",`Name a player who won ${EVNAME[ev]} more than once`,"Since 1960",set(k=>W[k].filter(w=>w.ev===ev).length>1));
+    add("intl",`Name a non-American who won ${EVNAME[ev]}`,"Since 1960",set(k=>P[k][1]!=="USA"&&W[k].some(w=>w.ev===ev)));
+    add("only",`Name a player whose only major was ${EVNAME[ev]}`,"Exactly one career major",set(k=>career(k)===1&&W[k][0].ev===ev));
+    for(const d of decades) add("evdec",`Name a ${EVSHORT[ev]} champion from the ${d}s`,`Won between ${d} and ${Math.min(d+9,2026)}`,set(k=>W[k].some(w=>w.ev===ev&&w.y>=d&&w.y<d+10)));
+  }
+  for(const d of decades) add("dec",`Name a player who won a major in the ${d}s`,`Any of the four majors, ${d}–${Math.min(d+9,2026)}`,set(k=>W[k].some(w=>w.y>=d&&w.y<d+10)));
+  const evs=Object.keys(EVENTS);
+  for(let i=0;i<4;i++)for(let j=i+1;j<4;j++)add("pair",`Name a player who won both ${EVNAME[evs[i]]} and ${EVNAME[evs[j]]}`,"Career, any years",set(k=>W[k].some(w=>w.ev===evs[i])&&W[k].some(w=>w.ev===evs[j])));
+  const countries=[...new Set(keys.filter(won).map(k=>P[k][1]))].filter(c=>c!=="USA");
+  for(const c of countries)add("country",`Name a major champion from ${c}`,"Any major since 1960",set(k=>won(k)&&P[k][1]===c));
+  add("count","Name a player with exactly one career major","Any of the four majors",set(k=>career(k)===1));
+  add("count","Name a player with exactly two career majors","Any of the four majors",set(k=>career(k)===2));
+  add("count","Name a player with 3 or 4 career majors","Any of the four majors",set(k=>career(k)>=3&&career(k)<=4));
+  add("count","Name a player with 5 or more career majors","Any of the four majors",set(k=>career(k)>=5));
+  add("b2b","Name a player who won the same major in back-to-back years","e.g. two straight U.S. Opens",set(k=>W[k].some(a=>W[k].some(b=>b.ev===a.ev&&b.y===a.y+1))));
+  add("year","Name a player who won two majors in the same year","Since 1960",set(k=>W[k].some(a=>W[k].some(b=>b!==a&&b.y===a.y))));
+  add("usopen-am","Name an American who won The Open Championship (British Open) since 1990","1990–2026",set(k=>P[k][1]==="USA"&&W[k].some(w=>w.ev==="open"&&w.y>=1990)));
+  add("first","Name a player who won a major for the first time since 2015","First major came in 2015 or later",set(k=>won(k)&&Math.min(...W[k].map(w=>w.y))>=2015&&!P[k][3]));
+  add("plus","Name a player who has won 2+ majors","Career total, any of the four majors",set(k=>career(k)>=2));
+  add("plus","Name a player who has won 3+ majors","Career total, any of the four majors",set(k=>career(k)>=3));
+  add("plus","Name a player who has won 4+ majors","Career total, any of the four majors",set(k=>career(k)>=4));
+  add("sub60","Name a player who has shot a round in the 50s","59 or better in an official PGA Tour event",[...new Set(SUB60)]);
+  add("players","Name a player who has won The Players Championship","1974–2026",[...new Set(PLAYERS.filter(k=>k!=="-"))]);
+  add("no1","Name a player who has been No. 1 in the Official World Golf Ranking","Since the rankings began in 1986",[...NO1]);
+  const distinct=k=>new Set(W[k].map(w=>w.ev)).size;
+  add("slam","Name a player who has completed the Career Grand Slam","Won all four majors: the Masters, U.S. Open, The Open Championship (British Open) and PGA Championship",[...set(k=>distinct(k)===4),...SLAM_PRE]);
+  add("slam","Name a player who is one major away from the Career Grand Slam","Has won three of the four different majors",[...set(k=>distinct(k)===3),...ONEAWAY_PRE]);
+  for(let y=2000;y<=2026;y++)add("season",`Name a player who won a PGA Tour event in ${y}`,y>=2014&&y<=2023?`Official events in the ${y-1}–${String(y).slice(2)} season`:`Official events in the ${y} season`,TOURWINS[y].split(" "));
+  return pool;
+}
+const POOL=buildPool();
+
+// ---------- DAILY SEED ----------
+function hash(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19}return h>>>0}
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function pick7(seed){
+  // Shuffle the question types, take 9, then pick a random question within each type
+  const r=rng(hash(seed));const shuf=a=>a.map(x=>[r(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+  const kinds=shuf([...new Set(POOL.map(q=>q.kind))]).slice(0,HOLES);
+  return kinds.map(k=>{const qs=POOL.filter(q=>q.kind===k);return qs[Math.floor(r()*qs.length)]});
+}
+const now=new Date();
+const pad=n=>String(n).padStart(2,"0");
+const today=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+const puzzleNo=Math.floor((Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())-Date.UTC(2026,9,22))/864e5)+1;
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+// ---------- NAME LOOKUP ----------
+const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z ]/g,"").trim();
+const ALL=[...keys.map(k=>({k,name:P[k][0]})),...NOMAJOR.filter(n=>!keys.some(k=>norm(P[k][0])===norm(n))).map(n=>({k:null,name:n}))].map(o=>({...o,n:norm(o.name)}));
+function search(q){const t=norm(q).split(/\s+/).filter(Boolean);if(!t.length)return[];
+  return ALL.filter(o=>t.every(x=>o.n.split(" ").some(w=>w.startsWith(x))||o.n.includes(x))).slice(0,6)}
+
+// ---------- GAME ----------
+const TIME=35,HOLES=9;
+const yards=k=>Math.round(120+(100-P[k][2])*2.6);
+let G=null,timerId=null;
+const $=s=>document.querySelector(s);
+const app=$("#app");
+
+function start(practice){
+  const seed=practice?"practice-"+Math.random():today;
+  G={practice,qs:pick7(seed),i:0,res:[]};
+  setNav("play",true);renderHoles();askQ();
+}
+function renderHoles(){
+  $("#meta").innerHTML=G&&G.practice?"Practice round":`No. ${puzzleNo}<br>${now.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}`;
+  $("#holes").innerHTML=Array.from({length:HOLES},(_,i)=>{const r=G&&G.res[i];const cls=r?(r.k?"hit":"miss"):(G&&i===G.i&&G.i<HOLES?"now":"");return`<div class="hole ${cls}" aria-label="Hole ${i+1}">${r?(r.k?r.yds:"OB"):i+1}</div>`}).join("");
+}
+function askQ(){
+  const q=G.qs[G.i];let left=TIME,sel=0,list=[];
+  app.innerHTML=`<section class="card">
+    <div class="eyebrow"><span>Hole ${G.i+1} of ${HOLES}</span><span id="clock">${TIME}s</span></div>
+    <h2>${q.q}</h2><p class="sub">${q.sub}</p>
+    <div class="timer" id="tbar"><i></i></div>
+    <div class="field"><label for="guess" class="sr" hidden>Player name</label>
+      <input type="text" id="guess" autocomplete="off" spellcheck="false" placeholder="Start typing a player…" aria-label="Player name">
+      <ul class="sugg" id="sugg" role="listbox" hidden></ul></div>
+    <p class="hint" id="hint">Guess until you find one that fits. Pick from the list.</p><p class="hint" id="tried"></p>
+    <div class="row"><button id="skip" class="ghost">Give up</button></div></section>`;
+  const inp=$("#guess"),ul=$("#sugg");inp.focus();
+  const wrong=[];
+  const tryName=o=>{if(o.k&&q.ans.includes(o.k))return answer(o,false,wrong.length);if(!wrong.includes(o.name))wrong.push(o.name);inp.value="";list=[];draw();$("#hint").innerHTML=`<span class="miss-t">${o.name} doesn't fit.</span> Keep guessing.`;$("#tried").textContent="Already tried: "+wrong.join(", ");inp.focus()};
+  const draw=()=>{ul.hidden=!list.length;ul.innerHTML=list.map((o,i)=>`<li role="option" class="${i===sel?"on":""}" data-i="${i}"><span>${o.name}</span><small>${o.k?P[o.k][1]:""}</small></li>`).join("")};
+  inp.addEventListener("input",()=>{list=search(inp.value);sel=0;draw();$("#hint").textContent=inp.value&&!list.length?"No player by that name in the list.":"Guess until you find one that fits. Pick from the list."});
+  inp.addEventListener("keydown",e=>{
+    if(e.key==="ArrowDown"){sel=Math.min(sel+1,list.length-1);draw();e.preventDefault()}
+    else if(e.key==="ArrowUp"){sel=Math.max(sel-1,0);draw();e.preventDefault()}
+    else if(e.key==="Enter"&&list[sel]){tryName(list[sel])}
+  });
+  ul.addEventListener("mousedown",e=>{const li=e.target.closest("li");if(li){e.preventDefault();tryName(list[+li.dataset.i])}});
+  $("#skip").onclick=()=>answer(null);
+  const t0=Date.now();
+  timerId=setInterval(()=>{left=Math.max(0,TIME-(Date.now()-t0)/1000);$("#tbar i").style.width=(left/TIME*100)+"%";$("#tbar").classList.toggle("low",left<8);$("#clock").textContent=Math.ceil(left)+"s";if(left<=0)answer(null,true)},100);
+}
+function answer(o,timeout,misses){
+  clearInterval(timerId);
+  const q=G.qs[G.i];const ok=o&&o.k&&q.ans.includes(o.k);
+  const r={q:q.q,pick:o?o.name:null,k:ok?o.k:null,yds:ok?yards(o.k):0};
+  G.res.push(r);G.i++;renderHoles();
+  const deep=[...q.ans].sort((a,b)=>P[a][2]-P[b][2]);
+  const top=[...q.ans].sort((a,b)=>P[b][2]-P[a][2])[0];
+  const best=deep[0];
+  let verdict,pill="";
+  if(ok){const f=P[o.k][2];verdict=f<=15?"Deep cut. Right down the middle.":f<=40?"Solid drive.":f<=70?"In the fairway.":"Safe play, short off the tee.";if(o.k===best)pill='<span class="pill">Deepest possible</span>'}
+  else verdict=timeout?"Time ran out. Out of bounds.":o?`${o.name} doesn't fit. Out of bounds.`:"Out of bounds.";
+  if(ok&&misses)verdict+=` Took ${misses+1} tries.`;
+  app.innerHTML=`<section class="card">
+    <div class="eyebrow"><span>Hole ${G.i} of ${HOLES}</span><span>${q.ans.length} valid answers</span></div>
+    <h2>${q.q}</h2>
+    <div class="result"><div class="yds ${ok?"":"ob"}">${ok?r.yds:"OB"}${ok?"<small>yds</small>":""}</div>${pill}</div>
+    <p class="verdict">${verdict}</p>
+    <p class="reveal">Deepest cuts: <b>${deep.slice(0,3).map(k=>`${P[k][0]} (${yards(k)})`).join(", ")}</b>.<br>Most obvious: <b>${P[top][0]} (${yards(top)})</b>.</p>
+    <div class="row"><button id="next">${G.i<HOLES?"Next hole":"See scorecard"}</button></div></section>`;
+  $("#next").focus();
+  $("#next").onclick=()=>{if(G.i<HOLES)askQ();else finish()};
+}
+function finish(){
+  if(!G.practice){store.set("dr9-"+today,G.res);postRound(G.res)}
+  setNav("play",false);
+  scorecard(G.res,G.practice);
+}
+const total=res=>res.reduce((a,r)=>a+r.yds,0);
+function shareText(res){
+  const sq=res.map(r=>!r.k?"🟥":r.yds>=300?"🟩":r.yds>=200?"🟨":"⬜").join("");
+  return `PullCuts #${puzzleNo} ⛳ ${total(res).toLocaleString()} yds\n${sq}`;
+}
+function scorecard(res,practice){
+  const hits=res.filter(r=>r.k).length;
+  app.innerHTML=`<section class="card">
+    <div class="eyebrow"><span>${practice?"Practice round":"Today's round"}</span><span>${hits}/${HOLES} in play</span></div>
+    <div class="yds">${total(res).toLocaleString()}<small>yds</small></div>
+    <div style="overflow-x:auto"><table><thead><tr><th>Hole</th><th>Your answer</th><th class="n">Yds</th></tr></thead><tbody>
+    ${res.map((r,i)=>`<tr><td class="n" style="text-align:left">${i+1}</td><td>${r.k?r.pick:`<span class="miss-t">${r.pick?r.pick+" · OB":"OB"}</span>`}<div class="q">${r.q}</div></td><td class="n">${r.k?r.yds:"0"}</td></tr>`).join("")}
+    </tbody><tfoot><tr><td></td><td>Total</td><td class="n">${total(res).toLocaleString()}</td></tr></tfoot></table></div>
+    ${practice?"":`<pre id="share" style="font-family:var(--mono);margin:0;white-space:pre-wrap">${shareText(res)}</pre>`}
+    <div class="row">${practice?"":`<button id="copy">Copy result</button>`}<button id="prac" class="ghost">Play a practice round</button></div>
+    <p class="hint" id="cmsg">${practice?"":"A new round posts every day at midnight."}</p></section>
+    ${practice?"":`<section class="card"><div class="eyebrow"><span>Today's leaderboard</span><span>No. ${puzzleNo}</span></div><div id="lb" data-mode="today"></div></section>`}`;
+  refreshBoard();
+  if(!practice)$("#copy").onclick=()=>{const t=shareText(res);navigator.clipboard.writeText(t).then(()=>$("#cmsg").textContent="Copied. Paste it in the group chat.").catch(()=>{const r=document.createRange();r.selectNodeContents($("#share"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("#cmsg").textContent="Copy blocked here. The text is selected, so copy it yourself."})};
+  $("#prac").onclick=()=>start(true);
+}
+function intro(){
+  G=null;setNav("play",false);renderHoles();
+  if(UID&&!me.name)return askName(false);
+  const done=store.get("dr9-"+today);
+  if(done){G={practice:false,res:done,i:HOLES};renderHoles();scorecard(done,false);return}
+  app.innerHTML=`<section class="card">
+    <div class="eyebrow"><span>Today's round</span><span>9 holes · 35s each</span></div>
+    <h2>Name the golfer. The less famous, the farther it flies.</h2>
+    <p class="how">Each hole asks for one golfer who fits the clue. A right answer is a drive, and its length depends on how obscure the player is: <b>Tiger Woods carries 120 yards, Jay Hebert carries 372.</b> A wrong guess just costs you time, so keep guessing. Run out the 35 seconds or give up and it's out of bounds.</p>
+    <div class="row"><button id="go">Tee off</button>${UID?"":'<button class="ghost signin">Sign in with Google</button>'}</div>${UID?"":'<p class="note">Sign in to post your score to the leaderboard. You can also play without signing in.</p>'}</section>`;
+  $("#go").onclick=()=>start(false);
+}
+
+// ---------- PLAYERS & LEADERBOARD (Firebase) ----------
+// Each player's doc lives at players/<uid>: {name, rounds:{"YYYY-MM-DD":{yds,hits,holes,picks}}, updated}
+const NAME_KEY="pc-name";
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const me={name:store.get(NAME_KEY)||""};
+let UID=null,BOARD=[],online="loading",postErr=null,signErr="",view="play",boardMode="today",unsub=null;
+const FB=()=>window.PCFB||null;
+
+function setNav(v,busy){
+  view=v;$("#nPlay").classList.toggle("on",v==="play");$("#nBoard").classList.toggle("on",v==="board");
+  if(busy!==undefined){$("#nBoard").disabled=busy;setNav.busy=busy}
+  $("#holes").hidden=v!=="play";
+  const b=setNav.busy;
+  $("#who").innerHTML=UID
+    ?`Playing as <b>${esc(me.name||"…")}</b> · <button class="linkbtn" id="rename">Change</button> · <button class="linkbtn" id="signout">Sign out</button>`
+    :`<button class="linkbtn signin">Sign in with Google</button>`;
+  const rn=$("#rename");if(rn){rn.disabled=!!b;rn.onclick=()=>askName(true)}
+  const so=$("#signout");if(so){so.disabled=!!b;so.onclick=()=>{const f=FB();if(f)f.signOut()}}
+}
+$("#nPlay").onclick=()=>intro();
+$("#nBoard").onclick=()=>showBoard();
+document.addEventListener("click",e=>{if(e.target.closest(".signin"))doSignIn()});
+async function doSignIn(){
+  const f=FB();
+  if(!f){signErr="Sign-in is still loading. Try again in a few seconds.";refreshBoard();return}
+  try{signErr="";await f.signIn()}
+  catch(e){const c=e&&e.code||"";if(c==="auth/popup-closed-by-user"||c==="auth/cancelled-popup-request")return;
+    signErr="Sign-in didn't work"+(c?` (${c})`:"")+". Try again, or try a different browser.";refreshBoard();const h=$("#signmsg");if(h)h.textContent=signErr}
+}
+
+function askName(changing){
+  setNav("play",false);$("#holes").hidden=true;
+  app.innerHTML=`<section class="card">
+    <div class="eyebrow"><span>${changing?"Change your name":"Welcome to PullCuts"}</span></div>
+    <h2>${changing?"What should we call you?":"Pick a name for the leaderboard"}</h2>
+    <p class="how">This is how other players will see you next to your score.</p>
+    <form id="nameForm" class="row" style="align-items:stretch">
+      <input type="text" id="uname" maxlength="20" autocomplete="nickname" placeholder="Your name" aria-label="Your name" value="${esc(me.name)}" style="flex:1;min-width:0">
+      <button type="submit">Save</button>
+    </form>
+    <p class="hint" id="nmsg"></p>
+    ${changing?'<div class="row"><button class="ghost" id="ncancel" type="button">Cancel</button></div>':""}</section>`;
+  const inp=$("#uname");inp.focus();
+  if(changing)$("#ncancel").onclick=()=>intro();
+  $("#nameForm").onsubmit=async e=>{
+    e.preventDefault();const n=inp.value.trim().replace(/\s+/g," ");
+    if(n.length<2){$("#nmsg").textContent="Use at least 2 characters.";return}
+    me.name=n;store.set(NAME_KEY,n);
+    const f=FB();if(UID&&f){try{await f.saveName(UID,n)}catch(err){postErr=err&&err.code||"error"}}
+    intro();
+  };
+}
+async function postRound(res){
+  const f=FB();if(!f||!UID||!me.name)return;
+  const round={yds:total(res),hits:res.filter(r=>r.k).length,holes:res.map(r=>r.yds),picks:res.map(r=>r.pick)};
+  try{await f.postRound(UID,me.name,today,round);postErr=null}catch(e){postErr=e&&e.code||"error"}
+  refreshBoard();
+}
+function showBoard(){
+  setNav("board");
+  app.innerHTML=`<section class="card">
+    <div class="eyebrow"><span>Leaderboard</span><span>${boardMode==="today"?"No. "+puzzleNo:"All rounds"}</span></div>
+    <div class="seg"><button class="tab ${boardMode==="today"?"on":""}" id="mToday">Today</button><button class="tab ${boardMode==="all"?"on":""}" id="mAll">All-time</button></div>
+    <div id="lb" data-mode="${boardMode}"></div></section>`;
+  $("#mToday").onclick=()=>{boardMode="today";showBoard()};
+  $("#mAll").onclick=()=>{boardMode="all";showBoard()};
+  refreshBoard();
+}
+function refreshBoard(){
+  const el=$("#lb");if(!el)return;const mode=el.dataset.mode;
+  if(online==="loading"){el.innerHTML='<p class="note">Loading the leaderboard…</p>';return}
+  if(online==="off"){el.innerHTML='<p class="note">The leaderboard can\'t load right now. Check your connection and refresh the page. You can still play.</p>';return}
+  if(online==="signedout"){el.innerHTML=`<p class="note">Sign in with Google to see the leaderboard and post your scores.</p><div class="row"><button class="signin">Sign in with Google</button></div><p class="hint miss-t" id="signmsg">${esc(signErr)}</p>`;return}
+  const warn=postErr?`<p class="note miss-t">Your score couldn't be posted (${esc(postErr)}). Refresh the page and try again.</p>`:"";
+  let rows;
+  if(mode==="today"){
+    rows=BOARD.filter(p=>p.rounds&&p.rounds[today]).map(p=>({id:p.id,name:p.name,a:p.rounds[today].hits+"/"+HOLES,v:p.rounds[today].yds})).sort((a,b)=>b.v-a.v);
+    if(!rows.length){el.innerHTML=warn+'<p class="note">No one has finished today\'s round yet. Finish yours to take the top spot.</p>';return}
+    el.innerHTML=warn+table(rows,"In play","Yds");
+  }else{
+    rows=BOARD.map(p=>{const r=Object.values(p.rounds||{});return{id:p.id,name:p.name,a:r.length,v:r.reduce((s,x)=>s+(x.yds||0),0)}}).filter(p=>p.a>0).sort((a,b)=>b.v-a.v);
+    if(!rows.length){el.innerHTML=warn+'<p class="note">No rounds posted yet.</p>';return}
+    el.innerHTML=warn+table(rows,"Rounds","Total yds");
+  }
+}
+function table(rows,aLabel,vLabel){
+  return `<div style="overflow-x:auto"><table class="lb"><thead><tr><th>#</th><th>Player</th><th class="n">${aLabel}</th><th class="n">${vLabel}</th></tr></thead><tbody>${
+    rows.map((r,i)=>`<tr class="${r.id===UID?"you":""}"><td class="rk">${i+1}</td><td>${esc(r.name||"Player")}${r.id===UID?'<span class="youtag">You</span>':""}</td><td class="n">${r.a}</td><td class="n">${r.v.toLocaleString()}</td></tr>`).join("")
+  }</tbody></table></div>`;
+}
+// Called by the Firebase module whenever someone signs in or out
+window.pcAuth=async u=>{
+  if(unsub){unsub();unsub=null}
+  const midRound=G&&G.i<HOLES;
+  if(!u){UID=null;BOARD=[];online="signedout";setNav(view);refreshBoard();if(!midRound&&view==="play")intro();return}
+  UID=u.uid;const f=FB();
+  try{
+    const d=await f.getMine(UID);
+    if(d&&d.name){me.name=d.name;store.set(NAME_KEY,d.name)}
+    const r=d&&d.rounds&&d.rounds[today];
+    const local=store.get("dr9-"+today);
+    if(r&&!local){
+      const qs=pick7(today);
+      store.set("dr9-"+today,qs.map((q,i)=>({q:q.q,pick:r.picks[i],k:r.holes[i]>0?1:null,yds:r.holes[i]})));
+    }
+    if(!d&&me.name)await f.saveName(UID,me.name);
+    if(!r&&local&&me.name)await postRound(local);
+  }catch(e){postErr=e&&e.code||"error"}
+  online="on";
+  unsub=f.watch(list=>{BOARD=list;refreshBoard()},()=>{online="off";refreshBoard()});
+  setNav(view);
+  if(!midRound){if(view==="board")showBoard();else intro()}
+};
+setTimeout(()=>{if(online==="loading"){online="off";refreshBoard()}},15000);
+intro();
+</script>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signInWithRedirect,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,doc,getDoc,setDoc,updateDoc,onSnapshot,collection,FieldPath,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const app=initializeApp({
+  apiKey:"AIzaSyD4l_PeLLv69vJefLe38t4K-dgTwO-5Sho",
+  authDomain:"deepullcuts.firebaseapp.com",
+  projectId:"deepullcuts",
+  storageBucket:"deepullcuts.firebasestorage.app",
+  messagingSenderId:"962795305020",
+  appId:"1:962795305020:web:dc6e6f4e24c4b862952b39"
+});
+const auth=getAuth(app),db=getFirestore(app);
+window.PCFB={
+  async signIn(){const p=new GoogleAuthProvider();p.setCustomParameters({prompt:"select_account"});
+    try{await signInWithPopup(auth,p)}catch(e){if(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-environment")await signInWithRedirect(auth,p);else throw e}},
+  signOut:()=>signOut(auth),
+  async getMine(uid){const s=await getDoc(doc(db,"players",uid));return s.exists()?s.data():null},
+  async saveName(uid,name){const r=doc(db,"players",uid);const s=await getDoc(r);
+    if(s.exists())await updateDoc(r,{name,updated:serverTimestamp()});else await setDoc(r,{name,rounds:{},updated:serverTimestamp()})},
+  async postRound(uid,name,day,round){const r=doc(db,"players",uid);const s=await getDoc(r);
+    if(!s.exists()){await setDoc(r,{name,rounds:{[day]:round},updated:serverTimestamp()});return}
+    if((s.data().rounds||{})[day])return;
+    await updateDoc(r,new FieldPath("rounds",day),round,"updated",serverTimestamp())},
+  watch:(cb,err)=>onSnapshot(collection(db,"players"),s=>cb(s.docs.map(d=>({id:d.id,...d.data()}))),err)
+};
+onAuthStateChanged(auth,u=>{if(window.pcAuth)window.pcAuth(u?{uid:u.uid}:null)});
+</script>
+</body></html>
